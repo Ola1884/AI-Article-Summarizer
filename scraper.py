@@ -8,7 +8,7 @@ from datetime import datetime
 
 #Tech Crunch URL
 articles_url = "https://techcrunch.com/"
-API_KEY = "63920ac42c1873ca3e2696e7df4ba2ea"
+API_KEY = ""
 
 def get_article_content(url):
 
