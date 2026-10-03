@@ -4,11 +4,18 @@ import csv
 from bs4 import BeautifulSoup
 import time
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
+key = os.getenv('SCRAPER_API_KEY')
+
 
 
 #Tech Crunch URL
 articles_url = "https://techcrunch.com/"
-API_KEY = ""
+API_KEY = key
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
