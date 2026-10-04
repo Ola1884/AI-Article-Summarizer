@@ -52,8 +52,8 @@ def chunk_text(text,tokenizer,max_tokens=900,overlap_tokens=100):
 
 
 def summarize_chunk(chunk,max_length=150,min_length=40):
-    
-    inputs = tokenizer.encode(chunk,return_tensor="pt",max_length=1024,truncation=True).to(model.device)
+    # Summarizes a single chunk of text using the BART model.
+    inputs = tokenizer(chunk,return_tensor="pt",max_length=1024,truncation=True).to(model.device)
     summary_ids = model.generate(
         inputs["input_ids"],
         max_length=max_length,
@@ -78,6 +78,7 @@ def summarize_article(article_text):
     if len(chunk_summarizes) == 1:
         return chunk_summarizes[0]
     combine = "".join(chunk_summarizes)
+    # Summarize all the chunk summaries into a final summary
     final_summary = summarize_chunk(combine,max_length=200,min_lenght=60)
     return final_summary
 
