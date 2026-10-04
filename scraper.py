@@ -64,62 +64,56 @@ def get_article_content(url):
         return "N/A"
 
     
-payload = {
+def scrape_latest_articles(num_articles=3):
+    payload = {
     "api_key": API_KEY,
     "url": articles_url
-}
-#Make a request to the scraper API
-response = requests.get("https://api.scraperapi.com", params=payload, headers=headers)
-response.raise_for_status()  # Raise an exception for HTTP errors
-
-#Parse the HTML content using BeautifulSoup
-soup = BeautifulSoup(response.content, "html.parser")
-
-#find latest news section
-latest_section = soup.find('div', class_='latest-news-section')
-if not latest_section:
-    print("❌ Could not find the Latest News section container!")
-    exit()
-
-articles = latest_section.select('div.loop-card')
-scraped_articles = []
-for idx,article in enumerate(articles):
-    print(f"Scraping article {idx + 1}...")
-    title_tag = article.select_one('a.loop-card__title-link')
-    title = title_tag.get_text(strip=True) if title_tag else 'N/A'
-    link_tag = article.select_one('a.loop-card__title-link')
-    url = link_tag['href'] if link_tag else 'N/A'
-    author_tag = article.select_one('a.loop-card__author')
-    author = author_tag.get_text(strip=True) if author_tag else 'N/A'
-    time_tag = article.find('time', class_='loop-card__time')
-    published_date = time_tag.get('datetime') if time_tag else "N/A"
-
-    if url != 'N/A':
-        content = get_article_content(url)
-    else:
-        content = "N/A"
-    article_data = {
-        "Title": title,
-        "URL": url,
-        "Author": author,
-        "Published Date": published_date,
-        "Content": content
     }
-    scraped_articles.append(article_data)
-valid = [a for a in scraped_articles if a['Published Date'] != "N/A"]
-latest_3_articles = sorted(valid, key=lambda x: datetime.fromisoformat(x['Published Date']), reverse=True)[:3]
-time.sleep(1)  # Sleep for 1 second between requests to avoid overwhelming the server 
+    #Make a request to the scraper API
+    response = requests.get("https://api.scraperapi.com", params=payload, headers=headers)
+    response.raise_for_status()  # Raise an exception for HTTP errors
 
+    #Parse the HTML content using BeautifulSoup
+    soup = BeautifulSoup(response.content, "html.parser")
 
-print("\n" + "="*60)
-print("RESULTS")
-print("="*60 + "\n")
+    #find latest news section
+    latest_section = soup.find('div', class_='latest-news-section')
+    if not latest_section:
+        print("❌ Could not find the Latest News section container!")
+        exit()
 
-for i, article in enumerate(latest_3_articles):
-    print(f"Article {i+1}:")
-    print(f"Title: {article['Title']}")
-    print(f"URL: {article['URL']}")
-    print(f"Author: {article['Author']}")
-    print(f"Published Date: {article['Published Date']}")
-    preview = article['Content']
-    print(f"Content Preview: {preview}\n")
+    articles = latest_section.select('div.loop-card')
+    scraped_articles = []
+    for idx,article in enumerate(articles):
+        print(f"Scraping article {idx + 1}...")
+        title_tag = article.select_one('a.loop-card__title-link')
+        title = title_tag.get_text(strip=True) if title_tag else 'N/A'
+        link_tag = article.select_one('a.loop-card__title-link')
+        url = link_tag['href'] if link_tag else 'N/A'
+        author_tag = article.select_one('a.loop-card__author')
+        author = author_tag.get_text(strip=True) if author_tag else 'N/A'
+        time_tag = article.find('time', class_='loop-card__time')
+        published_date = time_tag.get('datetime') if time_tag else "N/A"
+
+        if url != 'N/A':
+            content = get_article_content(url)
+        else:
+            content = "N/A"
+        article_data = {
+            "Title": title,
+            "URL": url,
+            "Author": author,
+            "Published Date": published_date,
+            "Content": content
+        }
+        scraped_articles.append(article_data)
+    valid = [a for a in scraped_articles if a['Published Date'] != "N/A"]
+    latest_3_articles = sorted(valid, key=lambda x: datetime.fromisoformat(x['Published Date']), reverse=True)[:3]
+    time.sleep(1)  # Sleep for 1 second between requests to avoid overwhelming the server 
+
+    return latest_3_articles
+
+if __name__ == "__main__":
+    articles = scrape_latest_articles(3)
+    for a in articles:
+        print(a['Title'])

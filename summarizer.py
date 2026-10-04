@@ -84,3 +84,9 @@ def summarize_article(article_text):
 
 
 
+if __name__ == "__main__":
+    # Example usage
+    article_text = "Your long article text goes here..."
+    summary = summarize_article(article_text)
+    print("Summary:")
+    print(summary)
