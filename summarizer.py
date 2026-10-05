@@ -22,7 +22,7 @@ def chunk_text(text,tokenizer,max_tokens=900,overlap_tokens=100):
         sentence_tokens = len(tokenizer.encode(sentence,add_special_tokens=False))
         # If adding this sentence exceeds the max_tokens limit, finalize the current chunk and start a new one
         if current_length + sentence_tokens > max_tokens:
-            chunks.append("".join(current_chunk))
+            chunks.append(" ".join(current_chunk))
             # Start a new chunk with overlap
             overlap_sentences = []
             overlap_length = 0
@@ -46,20 +46,34 @@ def chunk_text(text,tokenizer,max_tokens=900,overlap_tokens=100):
 
     # Add the last chunk if it has content
     if current_chunk:
-        chunks.append("".join(current_chunk))
+        chunks.append(" ".join(current_chunk))
     return chunks
 
 
 
-def summarize_chunk(chunk,max_length=150,min_length=40):
-    # Summarizes a single chunk of text using the BART model.
-    inputs = tokenizer(chunk,return_tensor="pt",max_length=1024,truncation=True).to(model.device)
+def summarize_chunk(chunk,compression_ratio=0.2,hard_max=250,hard_min=30):
+    """
+    Summarizes a chunk of text.
+
+    compression_ratio: target summary length as a fraction of the input tokens
+    hard_max: absolute upper bound on summary length (prevent runaway output)
+    hard_min: absolute lower bound on summary length (prevent one-word summaries)
+    """
+    inputs = tokenizer(chunk,return_tensors="pt",max_length=1024,truncation=True).to(model.device)
+
+    input_length = inputs["input_ids"].shape[1]
+    target_length = int(input_length * compression_ratio)
+    max_len = max(hard_min,min(target_length,hard_max)) # max is min of target and hard max, but at least hard min
+    min_len = max(10,int(max_len*0.4)) # min is ~40% of max
+
     summary_ids = model.generate(
         inputs["input_ids"],
-        max_length=max_length,
-        min_length=min_length,
-        length_penalty = 2.0,
-        num_beams=4,
+        attention_mask=inputs["attention_mask"],   
+        max_length=max_len,
+        min_length=min_len,
+        length_penalty = 1.5,
+        num_beams=5,
+        no_repeat_ngram_size = 3,
         early_stopping=True
         )
     return tokenizer.decode(summary_ids[0],skip_special_tokens=True)
@@ -77,9 +91,9 @@ def summarize_article(article_text):
     #3. If one chunk found return directly
     if len(chunk_summarizes) == 1:
         return chunk_summarizes[0]
-    combine = "".join(chunk_summarizes)
+    combine = " ".join(chunk_summarizes)
     # Summarize all the chunk summaries into a final summary
-    final_summary = summarize_chunk(combine,max_length=200,min_lenght=60)
+    final_summary = summarize_chunk(combine, compression_ratio=0.3, hard_max=200, hard_min=60)
     return final_summary
 
 

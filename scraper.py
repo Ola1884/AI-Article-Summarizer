@@ -14,7 +14,6 @@ key = os.getenv('SCRAPER_API_KEY')
 
 
 #Tech Crunch URL
-articles_url = "https://techcrunch.com/"
 API_KEY = key
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -62,9 +61,8 @@ def get_article_content(url):
     except requests.exceptions.RequestException as e:
         print(f"Error fetching article content: {e}")
         return "N/A"
-
     
-def scrape_latest_articles(num_articles=3):
+def scrape_latest_articles(num_articles=3,articles_url="https://techcrunch.com/"):
     payload = {
     "api_key": API_KEY,
     "url": articles_url

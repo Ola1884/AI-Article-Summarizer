@@ -1,0 +1,29 @@
+[
+    {
+        "Title": "Federal judge calls Flock ‘indiscriminate mass surveillance’",
+        "URL": "https://techcrunch.com/2026/10/03/federal-judge-calls-flock-indiscriminate-mass-surveillance/",
+        "Author": "Anthony Ha",
+        "Published Date": "2026-10-03T12:33:15-07:00",
+        "Original Length": 2444,
+        "Summary": "A federal judge ruled that a Tulsa, Oklahoma sheriff's deputy violated a woman's Fourth Amendment rights when using Flock Safety to search for her license plate without a warrant. Judge Sara Hill said the deputy should have obtained a warrant before searching the Flock database for the woman's license plate.",
+        "Summary Length": 309
+    },
+    {
+        "Title": "Amazon responds to data center backlash, says it no longer uses NDAs",
+        "URL": "https://techcrunch.com/2026/10/03/amazon-responds-to-data-center-backlash-says-it-no-longer-uses-ndas/",
+        "Author": "Anthony Ha",
+        "Published Date": "2026-10-03T11:43:57-07:00",
+        "Original Length": 4118,
+        "Summary": "Amazon Web Services CEO Matt Garman said the company has stopped using nondisclosure agreements in its dealings with government agencies as it seeks approval to build new data centers. Garman's statement is just one sentence in a longer blog post. He tried to push back against widespread suspicion of data centers, and to make the case that they're actually good for communities.",
+        "Summary Length": 380
+    },
+    {
+        "Title": "OpenAI safety employee resigns, claiming the company’s ‘culture is broken’",
+        "URL": "https://techcrunch.com/2026/10/03/openai-safety-employee-resigns-claiming-the-companys-culture-is-broken/",
+        "Author": "Anthony Ha",
+        "Published Date": "2026-10-03T09:30:01-07:00",
+        "Original Length": 4214,
+        "Summary": "David Robinson, a former researcher at OpenAI, is resigning from his job. He says the company's \"culture is broken\" and that AI companies need to be more cautious. OpenAI says it continues to improve its safety measures.",
+        "Summary Length": 220
+    }
+]
