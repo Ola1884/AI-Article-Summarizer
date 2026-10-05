@@ -1,11 +1,23 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 import nltk
-nltk.download('punkt',quiet=True)
+import os
+from error_log import log_error
 
+# Suppress symlink warning on Windows
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+
+# Download NLTK data on first run
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt_tab', quiet=True)
+
+# Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained("facebook/bart-large-cnn")
 model = AutoModelForSeq2SeqLM.from_pretrained("facebook/bart-large-cnn", device_map="auto")
 
-def chunk_text(text,tokenizer,max_tokens=900,overlap_tokens=100):
+
+def chunk_text(text, tokenizer, max_tokens=900, overlap_tokens=100):
     """
     Splits a long text into overlapping chunks based on sentences.
     max_tokens: size of each chunk (must be < model's 1024 limit)
@@ -16,91 +28,123 @@ def chunk_text(text,tokenizer,max_tokens=900,overlap_tokens=100):
     current_chunk = []
     current_length = 0
 
-    # Iterate through sentences and create chunks
     for sentence in sentences:
-        # Count the number of tokens in the sentence
-        sentence_tokens = len(tokenizer.encode(sentence,add_special_tokens=False))
-        # If adding this sentence exceeds the max_tokens limit, finalize the current chunk and start a new one
+        sentence_tokens = len(tokenizer.encode(sentence, add_special_tokens=False))
+
         if current_length + sentence_tokens > max_tokens:
             chunks.append(" ".join(current_chunk))
-            # Start a new chunk with overlap
+
+            # Build overlap from end of previous chunk
             overlap_sentences = []
             overlap_length = 0
-            # Add sentences from the end of the current chunk to the new chunk until we reach the overlap limit
             for sent in reversed(current_chunk):
-                # Count the number of tokens in the sentence
                 sent_len = len(tokenizer.encode(sent, add_special_tokens=False))
-                # If adding this sentence exceeds the overlap_tokens limit, stop adding sentences
                 if overlap_length + sent_len > overlap_tokens:
                     break
-                # Add the sentence to the overlap list and update the overlap length
                 overlap_sentences.insert(0, sent)
                 overlap_length += sent_len
-            # Start the new chunk with the overlap sentences
+
             current_chunk = overlap_sentences + [sentence]
             current_length = overlap_length + sentence_tokens
+            continue
 
-        # If adding this sentence does not exceed the max_tokens limit, add it to the current chunk
         current_chunk.append(sentence)
         current_length += sentence_tokens
 
-    # Add the last chunk if it has content
     if current_chunk:
         chunks.append(" ".join(current_chunk))
+
     return chunks
 
 
-
-def summarize_chunk(chunk,compression_ratio=0.2,hard_max=250,hard_min=30):
+def summarize_chunk(chunk, target_length=150, hard_max=350, hard_min=40):
     """
-    Summarizes a chunk of text.
-
-    compression_ratio: target summary length as a fraction of the input tokens
-    hard_max: absolute upper bound on summary length (prevent runaway output)
-    hard_min: absolute lower bound on summary length (prevent one-word summaries)
+    Summarizes a single chunk. `target_length` is in TOKENS.
+    Produces output between ~60% and 100% of the effective max length.
     """
-    inputs = tokenizer(chunk,return_tensors="pt",max_length=1024,truncation=True).to(model.device)
+    try:
+        inputs = tokenizer(
+            chunk,
+            return_tensors="pt",
+            max_length=1024,
+            truncation=True,
+        ).to(model.device)
 
-    input_length = inputs["input_ids"].shape[1]
-    target_length = int(input_length * compression_ratio)
-    max_len = max(hard_min,min(target_length,hard_max)) # max is min of target and hard max, but at least hard min
-    min_len = max(10,int(max_len*0.4)) # min is ~40% of max
+        input_length = inputs["input_ids"].shape[1]
 
-    summary_ids = model.generate(
-        inputs["input_ids"],
-        attention_mask=inputs["attention_mask"],   
-        max_length=max_len,
-        min_length=min_len,
-        length_penalty = 1.5,
-        num_beams=5,
-        no_repeat_ngram_size = 3,
-        early_stopping=True
+        # Allow summaries up to 50% of the input length
+        max_by_input = max(hard_min, int(input_length * 0.5))
+        effective_max = min(target_length, hard_max, max_by_input)
+
+        # Force the model to produce at least 60% of the max
+        effective_min = max(20, int(effective_max * 0.6))
+
+        summary_ids = model.generate(
+            inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_length=effective_max,
+            min_length=effective_min,
+            length_penalty=1.0,
+            num_beams=5,
+            no_repeat_ngram_size=3,
+            early_stopping=True,
         )
-    return tokenizer.decode(summary_ids[0],skip_special_tokens=True)
+        return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+
+    except Exception as e:
+        log_error(
+            context="summarizer.summarize_chunk",
+            error_type="inference",
+            message=str(e),
+        )
+        return ""
 
 
-def summarize_article(article_text):
-    # Summarizes the input text using the BART model.
-    #1. Chunk text
-    chunks = chunk_text(article_text,tokenizer,max_tokens=900,overlap_tokens=100)
-    print(f"Split article into {len(chunks)} chunks")
+def summarize_article(article_text, target_length=200):
+    """
+    Full pipeline: chunk → summarize each chunk → summarize the summaries.
 
-    #2. Summarize each chunk
-    chunk_summarizes = [summarize_chunk(c) for c in chunks]
+    `target_length` is in WORDS (matching the UI slider). It's converted
+    to tokens internally using the 1 word ≈ 1.3 tokens approximation.
+    """
+    if not article_text or article_text == "N/A":
+        return "N/A"
 
-    #3. If one chunk found return directly
-    if len(chunk_summarizes) == 1:
-        return chunk_summarizes[0]
-    combine = " ".join(chunk_summarizes)
-    # Summarize all the chunk summaries into a final summary
-    final_summary = summarize_chunk(combine, compression_ratio=0.3, hard_max=200, hard_min=60)
+    # Convert words → tokens
+    target_tokens = int(target_length * 1.3)
+
+    chunks = chunk_text(article_text, tokenizer, max_tokens=900, overlap_tokens=100)
+    print(f"Split article into {len(chunks)} chunk(s)")
+
+    if not chunks:
+        return "N/A"
+
+    # Single chunk: summarize directly
+    if len(chunks) == 1:
+        return summarize_chunk(chunks[0], target_length=target_tokens)
+
+    # Multiple chunks: distribute target, then combine
+    per_chunk_target = max(60, target_tokens // len(chunks))
+    chunk_summaries = [
+        summarize_chunk(c, target_length=per_chunk_target) for c in chunks
+    ]
+
+    combined = " ".join(s for s in chunk_summaries if s)
+    if not combined.strip():
+        return "N/A"
+
+    final_summary = summarize_chunk(
+        combined,
+        target_length=target_tokens,
+        hard_max=target_tokens + 100,
+        hard_min=max(50, target_tokens // 2),
+    )
     return final_summary
 
 
-
 if __name__ == "__main__":
-    # Example usage
-    article_text = "Your long article text goes here..."
-    summary = summarize_article(article_text)
+    # Quick test
+    article_text = "Your long article text goes here. " * 50
+    summary = summarize_article(article_text, target_length=200)
     print("Summary:")
     print(summary)

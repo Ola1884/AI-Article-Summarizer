@@ -1,1 +1,28 @@
+# Virtual environment
+.venv/
+venv/
+
+# Environment variables (API keys)
 .env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Hugging Face cache
+.cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output files (optional — remove if you want to commit them)
+output/*.json
+
+# Debug files
+debug_article.html
