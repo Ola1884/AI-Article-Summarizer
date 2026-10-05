@@ -22,3 +22,31 @@ Includes an interactive **Streamlit** web app and a **command-line** pipeline fo
 ---
 
 ## 📁 Project Structure
+
+AI-Article-Summarizer/
+├── .gitignore
+├── .env # API keys (not committed)
+├── README.md
+├── requirements.txt
+│
+├── scraper.py # Scraping + retries + error logging
+├── cleaner.py # Text normalization
+├── summarizer.py # BART chunked summarization
+├── error_log.py # Error persistence module
+│
+├── app.py # Web UI (main entry point) using streamlit
+├── pipeliner.py # CLI entry point (batch processing)
+└── output/
+├── summaries.json
+└── error_log.json # Auto-generated on first error
+
+
+---
+
+## 🚀 Setup
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/<your-username>/AI-Article-Summarizer.git
+cd AI-Article-Summarizer
