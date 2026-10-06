@@ -40,7 +40,7 @@ AI-Article-Summarizer/
 ├── summarizer.py # BART chunked summarization
 
 ├── error_log.py # Error persistence module
-│
+
 ├── app.py # Web UI (main entry point) using streamlit
 
 ├── pipeliner.py # CLI entry point (batch processing)
