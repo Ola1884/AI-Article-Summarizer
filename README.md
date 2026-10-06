@@ -42,9 +42,11 @@ AI-Article-Summarizer/
 ├── error_log.py # Error persistence module
 │
 ├── app.py # Web UI (main entry point) using streamlit
+
 ├── pipeliner.py # CLI entry point (batch processing)
 
 └── output/
+
 ├── summaries.json
 
 └── error_log.json # Auto-generated on first error
